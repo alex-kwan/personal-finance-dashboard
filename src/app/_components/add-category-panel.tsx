@@ -3,13 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-
-type CreateCategoryResponse = {
-  data?: {
-    id: string;
-  };
-  error?: string;
-};
+import { readApiErrorMessage, validateRequiredText } from "@/lib/form-validation";
 
 export function AddCategoryPanel() {
   const router = useRouter();
@@ -22,8 +16,9 @@ export function AddCategoryPanel() {
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!name.trim()) {
-      setError("Category name is required.");
+    const nameError = validateRequiredText(name, "Category name");
+    if (nameError) {
+      setError(nameError);
       return;
     }
 
@@ -42,10 +37,8 @@ export function AddCategoryPanel() {
         }),
       });
 
-      const payload = (await response.json()) as CreateCategoryResponse;
-
       if (!response.ok) {
-        setError(payload.error ?? "Failed to create category.");
+        setError(await readApiErrorMessage(response, "Failed to create category."));
         return;
       }
 

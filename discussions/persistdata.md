@@ -166,6 +166,7 @@ Validation checkpoint:
 
 Validation automation command:
 - `npm run validate:api` — executes API validation checks for enum validation, required fields, amount/date constraints, and transaction-category integrity.
+- `npm run validate:ui` — executes UI validation helper checks for required fields, numeric constraints, and date parsing rules used by form components.
 
 ## 8) Suggested Build Order (Execution Sequence)
 

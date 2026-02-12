@@ -16,7 +16,8 @@
     "validate:goals": "tsx scripts/validate-goals-step4.ts",
     "validate:transactions": "tsx scripts/validate-transactions-step3.ts",
     "validate:reports": "tsx scripts/validate-reports-step6.ts",
-    "validate:api": "tsx scripts/validate-api-rules-step7.ts"
+    "validate:api": "tsx scripts/validate-api-rules-step7.ts",
+    "validate:ui": "tsx scripts/validate-ui-rules-step7.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

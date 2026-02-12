@@ -4,13 +4,13 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { GoalStatus } from "@prisma/client";
-
-type CreateGoalResponse = {
-  error?: string;
-  data?: {
-    id: string;
-  };
-};
+import {
+  parseNonNegativeNumberInput,
+  parsePositiveNumberInput,
+  readApiErrorMessage,
+  validateDateInput,
+  validateRequiredText,
+} from "@/lib/form-validation";
 
 export function CreateGoalForm() {
   const router = useRouter();
@@ -27,21 +27,27 @@ export function CreateGoalForm() {
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const parsedTarget = Number(targetAmount);
-    const parsedCurrent = Number(currentAmount);
-
-    if (!name.trim()) {
-      setError("Goal name is required.");
+    const nameError = validateRequiredText(name, "Goal name");
+    if (nameError) {
+      setError(nameError);
       return;
     }
 
-    if (Number.isNaN(parsedTarget) || parsedTarget <= 0) {
-      setError("Target amount must be greater than 0.");
+    const parsedTarget = parsePositiveNumberInput(targetAmount, "Target amount");
+    if (parsedTarget.error || parsedTarget.value === null) {
+      setError(parsedTarget.error ?? "Target amount must be greater than 0.");
       return;
     }
 
-    if (Number.isNaN(parsedCurrent) || parsedCurrent < 0) {
-      setError("Current amount cannot be negative.");
+    const parsedCurrent = parseNonNegativeNumberInput(currentAmount, "Current amount");
+    if (parsedCurrent.error || parsedCurrent.value === null) {
+      setError(parsedCurrent.error ?? "Current amount cannot be negative.");
+      return;
+    }
+
+    const deadlineError = validateDateInput(deadline, "Target date");
+    if (deadlineError) {
+      setError(deadlineError);
       return;
     }
 
@@ -56,18 +62,16 @@ export function CreateGoalForm() {
         },
         body: JSON.stringify({
           name: name.trim(),
-          targetAmount: parsedTarget,
-          currentAmount: parsedCurrent,
+          targetAmount: parsedTarget.value,
+          currentAmount: parsedCurrent.value,
           deadline: deadline || null,
           status,
           description: description.trim() || null,
         }),
       });
 
-      const payload = (await response.json()) as CreateGoalResponse;
-
       if (!response.ok) {
-        setError(payload.error ?? "Failed to create goal.");
+        setError(await readApiErrorMessage(response, "Failed to create goal."));
         return;
       }
 

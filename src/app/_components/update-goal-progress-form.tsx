@@ -3,6 +3,11 @@
 import { GoalStatus } from "@prisma/client";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  parseNonNegativeNumberInput,
+  parsePositiveNumberInput,
+  readApiErrorMessage,
+} from "@/lib/form-validation";
 
 type UpdateGoalProgressFormProps = {
   goalId: string;
@@ -10,10 +15,6 @@ type UpdateGoalProgressFormProps = {
   initialTargetAmount: number;
   initialStatus: GoalStatus;
   initialDescription: string | null;
-};
-
-type UpdateGoalResponse = {
-  error?: string;
 };
 
 export function UpdateGoalProgressForm({
@@ -35,16 +36,15 @@ export function UpdateGoalProgressForm({
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const parsedCurrent = Number(currentAmount);
-    const parsedTarget = Number(targetAmount);
-
-    if (Number.isNaN(parsedCurrent) || parsedCurrent < 0) {
-      setError("Current amount must be 0 or greater.");
+    const parsedCurrent = parseNonNegativeNumberInput(currentAmount, "Current amount");
+    if (parsedCurrent.error || parsedCurrent.value === null) {
+      setError(parsedCurrent.error ?? "Current amount cannot be negative.");
       return;
     }
 
-    if (Number.isNaN(parsedTarget) || parsedTarget <= 0) {
-      setError("Target amount must be greater than 0.");
+    const parsedTarget = parsePositiveNumberInput(targetAmount, "Target amount");
+    if (parsedTarget.error || parsedTarget.value === null) {
+      setError(parsedTarget.error ?? "Target amount must be greater than 0.");
       return;
     }
 
@@ -58,17 +58,15 @@ export function UpdateGoalProgressForm({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          currentAmount: parsedCurrent,
-          targetAmount: parsedTarget,
+          currentAmount: parsedCurrent.value,
+          targetAmount: parsedTarget.value,
           status,
           description: description.trim() || null,
         }),
       });
 
-      const payload = (await response.json()) as UpdateGoalResponse;
-
       if (!response.ok) {
-        setError(payload.error ?? "Failed to update goal.");
+        setError(await readApiErrorMessage(response, "Failed to update goal."));
         return;
       }
 

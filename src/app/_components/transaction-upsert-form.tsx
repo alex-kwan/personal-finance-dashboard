@@ -4,6 +4,12 @@ import { TransactionType } from "@prisma/client";
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  parsePositiveNumberInput,
+  readApiErrorMessage,
+  validateDateInput,
+  validateRequiredText,
+} from "@/lib/form-validation";
 
 type CategoryOption = {
   id: string;
@@ -22,13 +28,6 @@ type TransactionUpsertFormProps = {
     categoryId?: string;
     date?: string;
     notes?: string | null;
-  };
-};
-
-type ApiResponse = {
-  error?: string;
-  data?: {
-    id: string;
   };
 };
 
@@ -61,20 +60,31 @@ export function TransactionUpsertForm({
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const parsedAmount = Number(amount);
-
-    if (!description.trim()) {
-      setError("Description is required.");
+    const descriptionError = validateRequiredText(description, "Description");
+    if (descriptionError) {
+      setError(descriptionError);
       return;
     }
 
-    if (Number.isNaN(parsedAmount) || parsedAmount <= 0) {
-      setError("Amount must be greater than 0.");
+    const amountValidation = parsePositiveNumberInput(amount, "Amount");
+    if (amountValidation.error || amountValidation.value === null) {
+      setError(amountValidation.error ?? "Amount must be greater than 0.");
       return;
     }
 
     if (!categoryId) {
       setError("Category is required.");
+      return;
+    }
+
+    if (!filteredCategories.some((category) => category.id === categoryId)) {
+      setError("Category is invalid for selected transaction type.");
+      return;
+    }
+
+    const dateError = validateDateInput(date, "Date");
+    if (dateError) {
+      setError(dateError);
       return;
     }
 
@@ -92,7 +102,7 @@ export function TransactionUpsertForm({
         },
         body: JSON.stringify({
           description: description.trim(),
-          amount: parsedAmount,
+          amount: amountValidation.value,
           type,
           categoryId,
           date,
@@ -100,10 +110,8 @@ export function TransactionUpsertForm({
         }),
       });
 
-      const payload = (await response.json()) as ApiResponse;
-
       if (!response.ok) {
-        setError(payload.error ?? "Failed to save transaction.");
+        setError(await readApiErrorMessage(response, "Failed to save transaction."));
         return;
       }
 
