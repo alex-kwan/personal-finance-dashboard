@@ -1,8 +1,8 @@
-import { TransactionType } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { getCurrentUserId } from "@/lib/current-user";
 import { DataErrorResponse, DataItemResponse, CategoryItem } from "@/lib/domain-types";
 import { updateCategoryForUser } from "@/lib/categories";
+import { errorToResponse, parseTransactionType, requireNonEmptyString } from "@/lib/api-validation";
 
 type Params = {
   params: Promise<{
@@ -24,33 +24,20 @@ export async function PUT(request: Request, { params }: Params) {
 
     const updateData: {
       name?: string;
-      type?: TransactionType;
+      type?: ReturnType<typeof parseTransactionType>;
       color?: string | null;
       icon?: string | null;
     } = {};
 
     if (body.name !== undefined) {
-      if (!body.name.trim()) {
-        return NextResponse.json<DataErrorResponse>(
-          {
-            error: "Category name cannot be empty.",
-          },
-          { status: 400 },
-        );
-      }
-      updateData.name = body.name.trim();
+      updateData.name = requireNonEmptyString(body.name, "Category name cannot be empty.");
     }
 
     if (body.type !== undefined) {
-      if (body.type !== TransactionType.INCOME && body.type !== TransactionType.EXPENSE) {
-        return NextResponse.json<DataErrorResponse>(
-          {
-            error: "Category type must be INCOME or EXPENSE.",
-          },
-          { status: 400 },
-        );
-      }
-      updateData.type = body.type;
+      updateData.type = parseTransactionType(body.type, {
+        required: true,
+        fieldName: "Category type",
+      });
     }
 
     if (body.color !== undefined) {
@@ -87,12 +74,7 @@ export async function PUT(request: Request, { params }: Params) {
       );
     }
 
-    return NextResponse.json<DataErrorResponse>(
-      {
-        error: "Failed to update category.",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 },
-    );
+    const mapped = errorToResponse(error, "Failed to update category.");
+    return NextResponse.json<DataErrorResponse>(mapped.body, { status: mapped.status });
   }
 }

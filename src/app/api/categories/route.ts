@@ -1,26 +1,21 @@
-import { TransactionType } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { createCategoryForUser, listCategoriesForUser } from "@/lib/categories";
 import { getCurrentUserId } from "@/lib/current-user";
 import { DataErrorResponse, DataListResponse, DataItemResponse, CategoryItem } from "@/lib/domain-types";
-
-function parseTypeParam(typeParam: string | null): TransactionType | undefined {
-  if (!typeParam) {
-    return undefined;
-  }
-
-  if (typeParam === TransactionType.INCOME || typeParam === TransactionType.EXPENSE) {
-    return typeParam;
-  }
-
-  return undefined;
-}
+import {
+  ApiValidationError,
+  errorToResponse,
+  parseTransactionType,
+  requireNonEmptyString,
+} from "@/lib/api-validation";
 
 export async function GET(request: Request) {
   try {
     const userId = await getCurrentUserId();
     const { searchParams } = new URL(request.url);
-    const type = parseTypeParam(searchParams.get("type"));
+    const type = parseTransactionType(searchParams.get("type"), {
+      fieldName: "Type",
+    });
 
     const categories = await listCategoriesForUser(userId, type);
 
@@ -31,12 +26,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json(responseBody);
   } catch (error) {
-    const responseBody: DataErrorResponse = {
-      error: "Failed to fetch categories.",
-      details: error instanceof Error ? error.message : "Unknown error",
-    };
-
-    return NextResponse.json(responseBody, { status: 500 });
+    const mapped = errorToResponse(error, "Failed to fetch categories.");
+    return NextResponse.json<DataErrorResponse>(mapped.body, { status: mapped.status });
   }
 }
 
@@ -50,27 +41,19 @@ export async function POST(request: Request) {
       icon?: string | null;
     };
 
-    if (!body.name || !body.name.trim()) {
-      return NextResponse.json<DataErrorResponse>(
-        {
-          error: "Category name is required.",
-        },
-        { status: 400 },
-      );
-    }
+    const name = requireNonEmptyString(body.name, "Category name is required.");
+    const type = parseTransactionType(body.type, {
+      required: true,
+      fieldName: "Category type",
+    });
 
-    if (body.type !== TransactionType.INCOME && body.type !== TransactionType.EXPENSE) {
-      return NextResponse.json<DataErrorResponse>(
-        {
-          error: "Category type must be INCOME or EXPENSE.",
-        },
-        { status: 400 },
-      );
+    if (!type) {
+      throw new ApiValidationError("Category type must be INCOME or EXPENSE.");
     }
 
     const category = await createCategoryForUser(userId, {
-      name: body.name.trim(),
-      type: body.type,
+      name,
+      type,
       color: body.color ?? null,
       icon: body.icon ?? null,
     });
@@ -90,11 +73,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const responseBody: DataErrorResponse = {
-      error: "Failed to create category.",
-      details: error instanceof Error ? error.message : "Unknown error",
-    };
-
-    return NextResponse.json(responseBody, { status: 500 });
+    const mapped = errorToResponse(error, "Failed to create category.");
+    return NextResponse.json<DataErrorResponse>(mapped.body, { status: mapped.status });
   }
 }

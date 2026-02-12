@@ -164,6 +164,9 @@ Validation checkpoint:
 4. Refresh and verify persistence
 5. Verify related screens reflect change (cross-screen consistency)
 
+Validation automation command:
+- `npm run validate:api` — executes API validation checks for enum validation, required fields, amount/date constraints, and transaction-category integrity.
+
 ## 8) Suggested Build Order (Execution Sequence)
 
 1. Shared types + Prisma access layer

@@ -1,4 +1,3 @@
-import { TransactionType } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { getCurrentUserId } from "@/lib/current-user";
 import {
@@ -12,24 +11,20 @@ import {
   TransactionDetailItem,
   TransactionUpdateInput,
 } from "@/lib/domain-types";
+import {
+  ApiValidationError,
+  errorToResponse,
+  parseOptionalDate,
+  parsePositiveNumber,
+  parseTransactionType,
+  requireNonEmptyString,
+} from "@/lib/api-validation";
 
 type Params = {
   params: Promise<{
     id: string;
   }>;
 };
-
-function parseType(typeParam: string | null): TransactionType | undefined {
-  if (!typeParam) {
-    return undefined;
-  }
-
-  if (typeParam === TransactionType.INCOME || typeParam === TransactionType.EXPENSE) {
-    return typeParam;
-  }
-
-  return undefined;
-}
 
 export async function GET(_request: Request, { params }: Params) {
   try {
@@ -74,39 +69,39 @@ export async function PUT(request: Request, { params }: Params) {
     const updateInput: TransactionUpdateInput = {};
 
     if (body.amount !== undefined) {
-      const amount = Number(body.amount);
-      if (Number.isNaN(amount) || amount <= 0) {
-        return NextResponse.json<DataErrorResponse>({ error: "Amount must be greater than 0." }, { status: 400 });
-      }
+      const amount = parsePositiveNumber(body.amount, "Amount");
       updateInput.amount = amount;
     }
 
     if (body.description !== undefined) {
-      if (!body.description.trim()) {
-        return NextResponse.json<DataErrorResponse>({ error: "Description cannot be empty." }, { status: 400 });
-      }
-      updateInput.description = body.description.trim();
+      updateInput.description = requireNonEmptyString(
+        body.description,
+        "Description cannot be empty.",
+      );
     }
 
     if (body.type !== undefined) {
-      const type = parseType(body.type);
+      const type = parseTransactionType(body.type, {
+        required: true,
+        fieldName: "Type",
+      });
       if (!type) {
-        return NextResponse.json<DataErrorResponse>({ error: "Type must be INCOME or EXPENSE." }, { status: 400 });
+        throw new ApiValidationError("Type must be INCOME or EXPENSE.");
       }
       updateInput.type = type;
     }
 
     if (body.date !== undefined) {
-      const date = new Date(body.date);
-      if (Number.isNaN(date.getTime())) {
-        return NextResponse.json<DataErrorResponse>({ error: "Date is invalid." }, { status: 400 });
+      const date = parseOptionalDate(body.date, "Date");
+      if (date === null) {
+        throw new ApiValidationError("Date is invalid.");
       }
       updateInput.date = date;
     }
 
     if (body.categoryId !== undefined) {
       if (!body.categoryId) {
-        return NextResponse.json<DataErrorResponse>({ error: "Category is required." }, { status: 400 });
+        throw new ApiValidationError("Category is required.");
       }
       updateInput.categoryId = body.categoryId;
     }
@@ -127,16 +122,8 @@ export async function PUT(request: Request, { params }: Params) {
 
     return NextResponse.json(responseBody);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    const status = message.includes("Category") ? 400 : 500;
-
-    return NextResponse.json<DataErrorResponse>(
-      {
-        error: "Failed to update transaction.",
-        details: message,
-      },
-      { status },
-    );
+    const mapped = errorToResponse(error, "Failed to update transaction.");
+    return NextResponse.json<DataErrorResponse>(mapped.body, { status: mapped.status });
   }
 }
 

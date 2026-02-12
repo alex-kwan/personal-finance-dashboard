@@ -1,4 +1,3 @@
-import { GoalStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { getCurrentUserId } from "@/lib/current-user";
 import {
@@ -9,28 +8,23 @@ import {
   SavingsGoalListItem,
 } from "@/lib/domain-types";
 import { createGoalForUser, listGoalsForUser } from "@/lib/goals";
-
-function parseStatus(statusParam: string | null): GoalStatus | undefined {
-  if (!statusParam) {
-    return undefined;
-  }
-
-  if (
-    statusParam === GoalStatus.IN_PROGRESS ||
-    statusParam === GoalStatus.COMPLETED ||
-    statusParam === GoalStatus.PAUSED
-  ) {
-    return statusParam;
-  }
-
-  return undefined;
-}
+import {
+  ApiValidationError,
+  errorToResponse,
+  parseGoalStatus,
+  parseNonNegativeNumber,
+  parseOptionalDate,
+  parsePositiveNumber,
+  requireNonEmptyString,
+} from "@/lib/api-validation";
 
 export async function GET(request: Request) {
   try {
     const userId = await getCurrentUserId();
     const { searchParams } = new URL(request.url);
-    const status = parseStatus(searchParams.get("status"));
+    const status = parseGoalStatus(searchParams.get("status"), {
+      fieldName: "Status",
+    });
 
     const goals = await listGoalsForUser(userId, status);
 
@@ -41,13 +35,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json(responseBody);
   } catch (error) {
-    return NextResponse.json<DataErrorResponse>(
-      {
-        error: "Failed to fetch goals.",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 },
-    );
+    const mapped = errorToResponse(error, "Failed to fetch goals.");
+    return NextResponse.json<DataErrorResponse>(mapped.body, { status: mapped.status });
   }
 }
 
@@ -63,61 +52,27 @@ export async function POST(request: Request) {
       description?: string | null;
     };
 
-    if (!body.name || !body.name.trim()) {
-      return NextResponse.json<DataErrorResponse>(
-        {
-          error: "Goal name is required.",
-        },
-        { status: 400 },
-      );
+    if (body.targetAmount === undefined) {
+      throw new ApiValidationError("Target amount is required.");
     }
 
-    if (body.targetAmount === undefined || Number.isNaN(Number(body.targetAmount))) {
-      return NextResponse.json<DataErrorResponse>(
-        {
-          error: "Target amount is required.",
-        },
-        { status: 400 },
-      );
-    }
-
-    const targetAmount = Number(body.targetAmount);
-    const currentAmount = body.currentAmount !== undefined ? Number(body.currentAmount) : 0;
-
-    if (targetAmount <= 0) {
-      return NextResponse.json<DataErrorResponse>(
-        {
-          error: "Target amount must be greater than 0.",
-        },
-        { status: 400 },
-      );
-    }
-
-    if (currentAmount < 0) {
-      return NextResponse.json<DataErrorResponse>(
-        {
-          error: "Current amount cannot be negative.",
-        },
-        { status: 400 },
-      );
-    }
-
-    const status = body.status ? parseStatus(body.status) : undefined;
-    if (body.status && !status) {
-      return NextResponse.json<DataErrorResponse>(
-        {
-          error: "Invalid goal status.",
-        },
-        { status: 400 },
-      );
-    }
+    const name = requireNonEmptyString(body.name, "Goal name is required.");
+    const targetAmount = parsePositiveNumber(body.targetAmount, "Target amount");
+    const currentAmount =
+      body.currentAmount !== undefined
+        ? parseNonNegativeNumber(body.currentAmount, "Current amount")
+        : 0;
+    const status = parseGoalStatus(body.status, {
+      fieldName: "Status",
+    });
+    const deadline = parseOptionalDate(body.deadline, "Deadline");
 
     const createInput: SavingsGoalCreateInput = {
-      name: body.name.trim(),
+      name,
       targetAmount,
       currentAmount,
       status,
-      deadline: body.deadline ? new Date(body.deadline) : null,
+      deadline: deadline ?? null,
       description: body.description ?? null,
     };
 
@@ -129,12 +84,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(responseBody, { status: 201 });
   } catch (error) {
-    return NextResponse.json<DataErrorResponse>(
-      {
-        error: "Failed to create goal.",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 },
-    );
+    const mapped = errorToResponse(error, "Failed to create goal.");
+    return NextResponse.json<DataErrorResponse>(mapped.body, { status: mapped.status });
   }
 }
