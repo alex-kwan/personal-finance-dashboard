@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AppShell } from "../../_components/app-shell";
-import { GoalFormCard } from "../../_components/goal-form-card";
+import { CreateGoalForm } from "../../_components/create-goal-form";
 
 export default function NewGoalPage() {
   return (
@@ -13,12 +13,7 @@ export default function NewGoalPage() {
           ← Back to Goals
         </Link>
 
-        <GoalFormCard
-          title="Goal Details"
-          submitLabel="Save Goal"
-          submitHref="/goals"
-          cancelHref="/goals"
-        />
+        <CreateGoalForm />
       </div>
     </AppShell>
   );

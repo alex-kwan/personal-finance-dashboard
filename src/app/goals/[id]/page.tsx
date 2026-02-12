@@ -1,5 +1,10 @@
+import { GoalStatus } from "@prisma/client";
+import { getCurrentUserId } from "@/lib/current-user";
+import { getGoalByIdForUser } from "@/lib/goals";
+import { notFound } from "next/navigation";
 import { AppShell } from "../../_components/app-shell";
 import { GoalDetailView } from "../../_components/goal-detail-view";
+import { UpdateGoalProgressForm } from "../../_components/update-goal-progress-form";
 
 type GoalDetailPageProps = {
   params: Promise<{
@@ -9,22 +14,52 @@ type GoalDetailPageProps = {
 
 export default async function GoalDetailPage({ params }: GoalDetailPageProps) {
   const { id } = await params;
+  const userId = await getCurrentUserId();
+
+  const goal = await getGoalByIdForUser(userId, id);
+
+  if (!goal) {
+    notFound();
+  }
+
+  const statusLabel =
+    goal.status === GoalStatus.COMPLETED
+      ? "Completed"
+      : goal.status === GoalStatus.PAUSED
+        ? "Paused"
+        : "In Progress";
 
   return (
     <AppShell title="Goal Detail" description="Inspect one savings goal and monitor contribution progress.">
-      <GoalDetailView
-        id={id}
-        name="Emergency Fund"
-        status="On Track"
-        progressPercent="60%"
-        amountText="$3,000 saved of $5,000 target"
-        progressWidthClassName="w-[60%]"
-        contributions={[
-          { date: "Feb 10, 2026", amount: "+$250", note: "Automatic transfer" },
-          { date: "Jan 25, 2026", amount: "+$300", note: "Manual contribution" },
-          { date: "Jan 10, 2026", amount: "+$200", note: "Weekly savings" },
-        ]}
-      />
+      <div className="space-y-6">
+        <GoalDetailView
+          id={goal.id}
+          name={goal.name}
+          status={statusLabel}
+          progressPercent={`${goal.progressPercent}%`}
+          amountText={`$${goal.currentAmount.toLocaleString()} saved of $${goal.targetAmount.toLocaleString()} target`}
+          progressValue={goal.progressPercent}
+          contributions={[
+            {
+              date: goal.updatedAt.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              }),
+              amount: `+$${goal.currentAmount.toLocaleString()}`,
+              note: goal.description ?? "Latest saved amount",
+            },
+          ]}
+        />
+
+        <UpdateGoalProgressForm
+          goalId={goal.id}
+          initialCurrentAmount={goal.currentAmount}
+          initialTargetAmount={goal.targetAmount}
+          initialStatus={goal.status}
+          initialDescription={goal.description}
+        />
+      </div>
     </AppShell>
   );
 }

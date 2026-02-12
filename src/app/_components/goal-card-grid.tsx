@@ -5,7 +5,7 @@ type GoalCardItem = {
   name: string;
   targetDate: string;
   progressText: string;
-  progressWidthClassName: string;
+  progressPercent: number;
   progressBarClassName?: string;
   status: string;
 };
@@ -36,7 +36,8 @@ export function GoalCardGrid({ goals }: GoalCardGridProps) {
             <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{goal.progressText}</p>
             <div className="mt-2 h-2 rounded-full bg-gray-200 dark:bg-gray-700">
               <div
-                className={`h-2 rounded-full ${goal.progressWidthClassName} ${goal.progressBarClassName ?? "bg-blue-600"}`}
+                className={`h-2 rounded-full ${goal.progressBarClassName ?? "bg-blue-600"}`}
+                style={{ width: `${Math.max(0, Math.min(100, goal.progressPercent))}%` }}
               />
             </div>
           </div>

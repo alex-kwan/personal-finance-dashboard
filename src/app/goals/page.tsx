@@ -1,44 +1,62 @@
 import Link from "next/link";
+import { GoalStatus } from "@prisma/client";
+import { getCurrentUserId } from "@/lib/current-user";
+import { listGoalsForUser } from "@/lib/goals";
 import { AppShell } from "../_components/app-shell";
 import { GoalCardGrid } from "../_components/goal-card-grid";
 import { GoalsSummaryStrip } from "../_components/goals-summary-strip";
 
-export default function GoalsPage() {
+function getStatusLabel(status: GoalStatus): string {
+  if (status === GoalStatus.COMPLETED) {
+    return "Completed";
+  }
+
+  if (status === GoalStatus.PAUSED) {
+    return "Paused";
+  }
+
+  return "In Progress";
+}
+
+function formatDate(date: Date | null): string {
+  if (!date) {
+    return "No deadline";
+  }
+
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+export default async function GoalsPage() {
+  const userId = await getCurrentUserId();
+  const goalsData = await listGoalsForUser(userId);
+
   const summaryItems = [
-    { label: "Total Goals", value: "5" },
-    { label: "On Track", value: "3", valueClassName: "text-green-600 dark:text-green-400" },
-    { label: "Achieved", value: "1", valueClassName: "text-blue-600 dark:text-blue-400" },
+    { label: "Total Goals", value: String(goalsData.length) },
+    {
+      label: "On Track",
+      value: String(goalsData.filter((goal) => goal.status === GoalStatus.IN_PROGRESS).length),
+      valueClassName: "text-green-600 dark:text-green-400",
+    },
+    {
+      label: "Achieved",
+      value: String(goalsData.filter((goal) => goal.status === GoalStatus.COMPLETED).length),
+      valueClassName: "text-blue-600 dark:text-blue-400",
+    },
   ];
 
-  const goals = [
-    {
-      id: "emergency-fund",
-      name: "Emergency Fund",
-      targetDate: "Dec 31, 2026",
-      progressText: "$3,000 / $5,000",
-      progressWidthClassName: "w-[60%]",
-      progressBarClassName: "bg-blue-600",
-      status: "On Track",
-    },
-    {
-      id: "vacation-fund",
-      name: "Vacation Fund",
-      targetDate: "Aug 1, 2026",
-      progressText: "$1,750 / $2,500",
-      progressWidthClassName: "w-[70%]",
-      progressBarClassName: "bg-green-600",
-      status: "On Track",
-    },
-    {
-      id: "new-laptop",
-      name: "New Laptop",
-      targetDate: "May 30, 2026",
-      progressText: "$900 / $1,500",
-      progressWidthClassName: "w-[60%]",
-      progressBarClassName: "bg-purple-600",
-      status: "At Risk",
-    },
-  ];
+  const goals = goalsData.map((goal) => ({
+    id: goal.id,
+    name: goal.name,
+    targetDate: formatDate(goal.deadline),
+    progressText: `$${goal.currentAmount.toLocaleString()} / $${goal.targetAmount.toLocaleString()}`,
+    progressPercent: goal.progressPercent,
+    progressBarClassName: goal.status === GoalStatus.COMPLETED ? "bg-green-600" : "bg-blue-600",
+    status: getStatusLabel(goal.status),
+  }));
 
   return (
     <AppShell title="Savings Goals" description="Track goal progress and plan your savings milestones.">

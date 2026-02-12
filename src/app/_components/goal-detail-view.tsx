@@ -12,7 +12,7 @@ type GoalDetailViewProps = {
   status: string;
   progressPercent: string;
   amountText: string;
-  progressWidthClassName: string;
+  progressValue: number;
   contributions: ContributionItem[];
 };
 
@@ -22,7 +22,7 @@ export function GoalDetailView({
   status,
   progressPercent,
   amountText,
-  progressWidthClassName,
+  progressValue,
   contributions,
 }: GoalDetailViewProps) {
   return (
@@ -45,7 +45,10 @@ export function GoalDetailView({
             <p className="text-sm font-semibold text-gray-900 dark:text-white">{progressPercent}</p>
           </div>
           <div className="h-3 rounded-full bg-gray-200 dark:bg-gray-700">
-            <div className={`h-3 rounded-full bg-blue-600 ${progressWidthClassName}`} />
+            <div
+              className="h-3 rounded-full bg-blue-600"
+              style={{ width: `${Math.max(0, Math.min(100, progressValue))}%` }}
+            />
           </div>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{amountText}</p>
         </div>
