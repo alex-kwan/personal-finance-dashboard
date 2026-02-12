@@ -5,11 +5,94 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
+}
+
+// Enums
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum GoalStatus {
+  IN_PROGRESS
+  COMPLETED
+  PAUSED
+}
+
+// Models
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  
+  // Relations
+  transactions  Transaction[]
+  categories    Category[]
+  savingsGoals  SavingsGoal[]
+}
+
+model Category {
+  id            String         @id @default(cuid())
+  name          String
+  color         String?        // Hex color for UI display
+  icon          String?        // Icon name or emoji
+  type          TransactionType // INCOME or EXPENSE
+  userId        String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  
+  // Relations
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions  Transaction[]
+  
+  @@unique([userId, name, type])
+  @@index([userId])
+}
+
+model Transaction {
+  id            String         @id @default(cuid())
+  amount        Float          // Store in cents or smallest currency unit
+  description   String
+  type          TransactionType
+  date          DateTime       @default(now())
+  userId        String
+  categoryId    String
+  notes         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  
+  // Relations
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category      Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  
+  @@index([userId, date])
+  @@index([categoryId])
+  @@index([type])
+}
+
+model SavingsGoal {
+  id            String         @id @default(cuid())
+  name          String
+  targetAmount  Float
+  currentAmount Float          @default(0)
+  deadline      DateTime?
+  status        GoalStatus     @default(IN_PROGRESS)
+  userId        String
+  description   String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  
+  // Relations
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([status])
 }

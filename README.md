@@ -10,43 +10,33 @@ npm install
 
 ### 2. Set Up Environment Variables
 
-Copy the `.env.example` file to `.env`:
+The `.env` file is already configured to use SQLite (no additional setup needed):
 
-```bash
-cp .env.example .env
+```env
+DATABASE_URL="file:./dev.db"
 ```
 
-Update the `DATABASE_URL` in `.env` with your PostgreSQL connection string:
+**For production with PostgreSQL**, update the `DATABASE_URL` in `.env`:
 
 ```env
 DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE?schema=public"
 ```
 
-**Using Prisma's Local Database (Recommended for Quick Start):**
-```bash
-npx prisma dev
-```
-This will start a local PostgreSQL instance and automatically configure your `.env` file.
-
-**Using Your Own PostgreSQL:**
-Replace the `DATABASE_URL` with your actual database credentials.
+Also update the `datasource` in `prisma/schema.prisma` to use `postgresql` instead of `sqlite`.
 
 ### 3. Set Up the Database
 
-Run Prisma migrations to create your database schema:
+Create the database and tables with Prisma:
 
 ```bash
 npm run db:push
-# or
-npx prisma db push
+npm run db:push
 ```
 
-Generate the Prisma Client:
+Seed the database with sample data:
 
 ```bash
-npm run db:generate
-# or
-npx prisma generate
+npm run db:seed
 ```
 
 ### 4. Run the Development Server
@@ -69,13 +59,14 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 - `npm run lint` - Run ESLint
 - `npm run db:generate` - Generate Prisma Client
 - `npm run db:push` - Push schema changes to database
+- `npm run db:seed` - Seed database with sample data
 - `npm run db:studio` - Open Prisma Studio GUI
 
 ## Tech Stack
 
 - **Frontend**: Next.js 14+ (App Router), React, TypeScript
 - **UI Components**: shadcn/ui, Tailwind CSS
-- **Database**: PostgreSQL with Prisma ORM
+- **Database**: SQLite with Prisma ORM (PostgreSQL for production)
 - **Charts**: Recharts
 
 ## Learn More
