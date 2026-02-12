@@ -2,19 +2,21 @@ import { AppShell } from "../../_components/app-shell";
 import { TransactionDetailCard } from "../../_components/transaction-detail-card";
 
 type TransactionDetailPageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
-export default function TransactionDetailPage({ params }: TransactionDetailPageProps) {
+export default async function TransactionDetailPage({ params }: TransactionDetailPageProps) {
+  const { id } = await params;
+
   return (
     <AppShell
       title="Transaction Detail"
       description="Inspect transaction information and move to edit when needed."
     >
       <TransactionDetailCard
-        id={params.id}
+        id={id}
         name="Monthly Rent"
         date="Feb 1, 2026"
         category="Housing"

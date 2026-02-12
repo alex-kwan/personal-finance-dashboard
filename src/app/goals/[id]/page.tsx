@@ -1,15 +1,17 @@
 import { PlaceholderPage } from "../../_components/placeholder-page";
 
 type GoalDetailPageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
-export default function GoalDetailPage({ params }: GoalDetailPageProps) {
+export default async function GoalDetailPage({ params }: GoalDetailPageProps) {
+  const { id } = await params;
+
   return (
     <PlaceholderPage
-      title={`Goal: ${params.id}`}
+      title={`Goal: ${id}`}
       description="Static placeholder for a single savings goal detail page."
       links={[
         { href: "/goals", label: "Back to Goals" },

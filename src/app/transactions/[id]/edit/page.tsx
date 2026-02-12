@@ -3,12 +3,14 @@ import { AppShell } from "../../../_components/app-shell";
 import { TransactionFormCard } from "../../../_components/transaction-form-card";
 
 type EditTransactionPageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
-export default function EditTransactionPage({ params }: EditTransactionPageProps) {
+export default async function EditTransactionPage({ params }: EditTransactionPageProps) {
+  const { id } = await params;
+
   return (
     <AppShell
       title="Edit Transaction"
@@ -16,7 +18,7 @@ export default function EditTransactionPage({ params }: EditTransactionPageProps
     >
       <div className="space-y-6">
         <Link
-          href={`/transactions/${params.id}`}
+          href={`/transactions/${id}`}
           className="inline-flex text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
         >
           ← Back to Detail
@@ -25,8 +27,8 @@ export default function EditTransactionPage({ params }: EditTransactionPageProps
         <TransactionFormCard
           title="Edit Transaction Details"
           submitLabel="Save Changes"
-          submitHref={`/transactions/${params.id}`}
-          cancelHref={`/transactions/${params.id}`}
+          submitHref={`/transactions/${id}`}
+          cancelHref={`/transactions/${id}`}
           defaultType="Expense"
           defaultAmount="1200.00"
           defaultDate="Feb 1, 2026"
