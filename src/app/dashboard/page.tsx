@@ -3,30 +3,59 @@ import { GoalsProgressCard } from "../_components/goals-progress-card";
 import { QuickActions } from "../_components/quick-actions";
 import { RecentTransactionsCard } from "../_components/recent-transactions-card";
 import { StatRow } from "../_components/stat-row";
+import { getCurrentUserId } from "@/lib/current-user";
+import { getDashboardSnapshotForUser } from "@/lib/dashboard";
+import { TransactionType } from "@prisma/client";
 
-export default function DashboardPage() {
+function formatCurrency(value: number): string {
+  return `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function formatDate(value: Date): string {
+  return value.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+export default async function DashboardPage() {
+  const userId = await getCurrentUserId();
+  const snapshot = await getDashboardSnapshotForUser(userId, {
+    recentTransactionsLimit: 5,
+    topGoalsLimit: 3,
+  });
+
+  const avgGoalProgress =
+    snapshot.topGoalProgress.length === 0
+      ? 0
+      : Math.round(
+          snapshot.topGoalProgress.reduce((sum, goal) => sum + goal.progressPercent, 0) /
+            snapshot.topGoalProgress.length,
+        );
+
   const stats = [
     {
       label: "Total Income",
-      value: "$6,500.00",
+      value: formatCurrency(snapshot.incomeTotal),
       subtitle: "This month",
       valueClassName: "text-green-600 dark:text-green-400",
     },
     {
       label: "Total Expenses",
-      value: "$1,780.00",
+      value: formatCurrency(snapshot.expenseTotal),
       subtitle: "This month",
       valueClassName: "text-red-600 dark:text-red-400",
     },
     {
       label: "Net Savings",
-      value: "$4,720.00",
+      value: formatCurrency(snapshot.netSavings),
       subtitle: "This month",
       valueClassName: "text-blue-600 dark:text-blue-400",
     },
     {
       label: "Goal Progress",
-      value: "68%",
+      value: `${avgGoalProgress}%`,
       subtitle: "Across all goals",
       valueClassName: "text-purple-600 dark:text-purple-400",
     },
@@ -39,45 +68,24 @@ export default function DashboardPage() {
   ];
 
   const recentTransactions = [
-    {
-      name: "Monthly Salary",
-      meta: "Feb 1, 2026 • Income",
-      amount: "+$5,000.00",
-      amountClassName: "text-green-600 dark:text-green-400",
-    },
-    {
-      name: "Monthly Rent",
-      meta: "Feb 1, 2026 • Housing",
-      amount: "-$1,200.00",
-      amountClassName: "text-red-600 dark:text-red-400",
-    },
-    {
-      name: "Grocery Shopping",
-      meta: "Feb 3, 2026 • Food",
-      amount: "-$250.00",
-      amountClassName: "text-red-600 dark:text-red-400",
-    },
+    ...snapshot.recentTransactions.map((transaction) => ({
+      name: transaction.description,
+      meta: `${formatDate(transaction.date)} • ${transaction.category.name}`,
+      amount: `${transaction.type === TransactionType.INCOME ? "+" : "-"}${formatCurrency(transaction.amount)}`,
+      amountClassName:
+        transaction.type === TransactionType.INCOME
+          ? "text-green-600 dark:text-green-400"
+          : "text-red-600 dark:text-red-400",
+    })),
   ];
 
   const goalProgress = [
-    {
-      name: "Emergency Fund",
-      amountText: "$3,000 / $5,000",
-      widthClassName: "w-[60%]",
-      barClassName: "bg-blue-600",
-    },
-    {
-      name: "Vacation Fund",
-      amountText: "$1,750 / $2,500",
-      widthClassName: "w-[70%]",
-      barClassName: "bg-green-600",
-    },
-    {
-      name: "New Laptop",
-      amountText: "$900 / $1,500",
-      widthClassName: "w-[60%]",
-      barClassName: "bg-purple-600",
-    },
+    ...snapshot.topGoalProgress.map((goal, index) => ({
+      name: goal.name,
+      amountText: `${formatCurrency(goal.currentAmount)} / ${formatCurrency(goal.targetAmount)}`,
+      progressPercent: goal.progressPercent,
+      barClassName: index % 3 === 0 ? "bg-blue-600" : index % 3 === 1 ? "bg-green-600" : "bg-purple-600",
+    })),
   ];
 
   return (

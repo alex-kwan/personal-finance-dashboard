@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TransactionDeleteButton } from "./transaction-delete-button";
 
 type TransactionDetailCardProps = {
   id: string;
@@ -8,7 +9,9 @@ type TransactionDetailCardProps = {
   type: "Income" | "Expense";
   amount: string;
   amountClassName: string;
-  notes: string;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export function TransactionDetailCard({
@@ -20,6 +23,8 @@ export function TransactionDetailCard({
   amount,
   amountClassName,
   notes,
+  createdAt,
+  updatedAt,
 }: TransactionDetailCardProps) {
   return (
     <section className="space-y-6">
@@ -50,7 +55,7 @@ export function TransactionDetailCard({
 
         <div className="mt-6">
           <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">Notes</p>
-          <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{notes}</p>
+          <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">{notes ?? "—"}</p>
         </div>
       </article>
 
@@ -59,8 +64,8 @@ export function TransactionDetailCard({
           Metadata
         </h4>
         <div className="mt-3 grid grid-cols-1 gap-3 text-sm text-gray-700 dark:text-gray-300 sm:grid-cols-2">
-          <p>Created: Feb 1, 2026 08:00 AM</p>
-          <p>Updated: Feb 1, 2026 08:00 AM</p>
+          <p>Created: {createdAt}</p>
+          <p>Updated: {updatedAt}</p>
         </div>
       </article>
 
@@ -77,6 +82,7 @@ export function TransactionDetailCard({
         >
           Back to Transactions
         </Link>
+        <TransactionDeleteButton transactionId={id} />
       </div>
     </section>
   );

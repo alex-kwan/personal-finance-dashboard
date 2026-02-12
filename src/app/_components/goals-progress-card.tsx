@@ -3,7 +3,7 @@ import Link from "next/link";
 type GoalProgressItem = {
   name: string;
   amountText: string;
-  widthClassName: string;
+  progressPercent: number;
   barClassName: string;
 };
 
@@ -28,7 +28,10 @@ export function GoalsProgressCard({ goals }: GoalsProgressCardProps) {
               <p className="text-sm text-gray-500 dark:text-gray-400">{goal.amountText}</p>
             </div>
             <div className="h-2 rounded-full bg-gray-200 dark:bg-gray-700">
-              <div className={`h-2 rounded-full ${goal.widthClassName} ${goal.barClassName}`} />
+              <div
+                className={`h-2 rounded-full ${goal.barClassName}`}
+                style={{ width: `${Math.max(0, Math.min(100, goal.progressPercent))}%` }}
+              />
             </div>
           </div>
         ))}

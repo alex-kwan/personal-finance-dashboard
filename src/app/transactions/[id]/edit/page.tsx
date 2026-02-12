@@ -1,6 +1,10 @@
 import Link from "next/link";
+import { getCurrentUserId } from "@/lib/current-user";
+import { listCategoriesForUser } from "@/lib/categories";
+import { getTransactionByIdForUser } from "@/lib/transactions";
+import { notFound } from "next/navigation";
 import { AppShell } from "../../../_components/app-shell";
-import { TransactionFormCard } from "../../../_components/transaction-form-card";
+import { TransactionUpsertForm } from "../../../_components/transaction-upsert-form";
 
 type EditTransactionPageProps = {
   params: Promise<{
@@ -10,6 +14,18 @@ type EditTransactionPageProps = {
 
 export default async function EditTransactionPage({ params }: EditTransactionPageProps) {
   const { id } = await params;
+  const userId = await getCurrentUserId();
+
+  const [transaction, categories] = await Promise.all([
+    getTransactionByIdForUser(userId, id),
+    listCategoriesForUser(userId),
+  ]);
+
+  if (!transaction) {
+    notFound();
+  }
+
+  const dateValue = transaction.date.toISOString().split("T")[0];
 
   return (
     <AppShell
@@ -24,16 +40,18 @@ export default async function EditTransactionPage({ params }: EditTransactionPag
           ← Back to Detail
         </Link>
 
-        <TransactionFormCard
-          title="Edit Transaction Details"
-          submitLabel="Save Changes"
-          submitHref={`/transactions/${id}`}
-          cancelHref={`/transactions/${id}`}
-          defaultType="Expense"
-          defaultAmount="1200.00"
-          defaultDate="Feb 1, 2026"
-          defaultCategory="Housing"
-          defaultNotes="Paid via bank transfer."
+        <TransactionUpsertForm
+          mode="edit"
+          transactionId={id}
+          categories={categories}
+          defaultValues={{
+            description: transaction.description,
+            amount: transaction.amount,
+            type: transaction.type,
+            categoryId: transaction.category.id,
+            date: dateValue,
+            notes: transaction.notes,
+          }}
         />
       </div>
     </AppShell>

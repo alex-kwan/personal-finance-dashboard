@@ -1,8 +1,13 @@
 import Link from "next/link";
+import { listCategoriesForUser } from "@/lib/categories";
+import { getCurrentUserId } from "@/lib/current-user";
 import { AppShell } from "../../_components/app-shell";
-import { TransactionFormCard } from "../../_components/transaction-form-card";
+import { TransactionUpsertForm } from "../../_components/transaction-upsert-form";
 
-export default function NewTransactionPage() {
+export default async function NewTransactionPage() {
+  const userId = await getCurrentUserId();
+  const categories = await listCategoriesForUser(userId);
+
   return (
     <AppShell
       title="New Transaction"
@@ -16,12 +21,7 @@ export default function NewTransactionPage() {
           ← Back to Transactions
         </Link>
 
-        <TransactionFormCard
-          title="Transaction Details"
-          submitLabel="Save Transaction"
-          submitHref="/transactions"
-          cancelHref="/transactions"
-        />
+        <TransactionUpsertForm mode="create" categories={categories} />
       </div>
     </AppShell>
   );
