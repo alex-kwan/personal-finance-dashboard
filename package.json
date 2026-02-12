@@ -14,7 +14,8 @@
     "db:studio": "prisma studio",
     "validate:data": "tsx scripts/validate-data-access.ts",
     "validate:goals": "tsx scripts/validate-goals-step4.ts",
-    "validate:transactions": "tsx scripts/validate-transactions-step3.ts"
+    "validate:transactions": "tsx scripts/validate-transactions-step3.ts",
+    "validate:reports": "tsx scripts/validate-reports-step6.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
