@@ -30,3 +30,11 @@ Next, I want to expand beyond a single page and start wiring in app behavior:
 - Persist UI interactions to the database and reflect updates back in the interface.
 
 This phase should make the UI architecture clearer and show which pieces are worth extracting into reusable components. It should also create a good opportunity for isolated testing—both for database operations and individual UI components.
+
+## Learnings & What I Found Interesting
+
+1. Building a project game plan in a file that AI can reference is incredibly useful. It creates shared context, makes the direction explicit, and helps me understand how the assistant is interpreting the work.
+
+2. I do not need to keep repeating the same prompts. Saving prior decisions and discussions makes iteration much easier, because I can ask for small adjustments instead of restating everything.
+
+3. Working from selected context is powerful. I can highlight a small section of a larger document and focus the conversation on that one part without losing the broader project thread.
